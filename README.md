@@ -5,6 +5,13 @@ honours project on driving-risk assessment. The current pipeline prepares the
 comma2k19 driving dataset for a CNN-LSTM future-motion model and provides a
 CARLA environment for later collision-risk and severity experiments.
 
+## Team guides
+
+- [CARLA and dataset integration guide (Chinese)](CARLA_DATASET_GUIDE_zh.md)
+- [comma2k19 data preparation](comma2k19_data_preparation/README.md)
+- [CARLA environment setup (Chinese)](carla_simulation/README_zh.md)
+- [Model handoff contract](comma2k19_data_preparation/ALGORITHM_HANDOFF.md)
+
 ## Repository contents
 
 - `comma2k19_data_preparation/`: comma2k19 manifests, train/validation/test
@@ -54,4 +61,3 @@ The approximately 100 GB comma2k19 source dataset and other multi-gigabyte raw
 datasets are intentionally excluded from Git history. This repository keeps
 the reproducible code, derived CSV/JSON indices, validation reports and preview
 assets. See `DATA.md` for the authoritative comma2k19 source and citation.
-
