@@ -1,0 +1,40 @@
+# macOS and editor files
+.DS_Store
+**/.DS_Store
+.vscode/*.log
+
+# Python environments and caches
+.venv/
+**/.venv/
+venv/
+**/venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local secrets and runtime files
+.env
+**/.env
+!.env.example
+!**/.env.example
+*.pid
+tmp/
+output/
+
+# Large source datasets are reproducible from their upstream sources.
+# See DATA.md for download instructions and expected directory layout.
+comma2k19/
+raw_data/
+*.torrent
+
+# Generated model artefacts
+checkpoints/
+runs/
+wandb/
+*.ckpt
+*.pt
+*.pth
+

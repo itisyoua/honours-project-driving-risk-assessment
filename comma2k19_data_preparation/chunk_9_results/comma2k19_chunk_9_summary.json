@@ -1,0 +1,27 @@
+{
+  "chunk": "Chunk_9",
+  "chunk_path": "/Users/weijingtao/Desktop/Honours project/comma2k19/Chunk_9",
+  "routes": 21,
+  "segments": 210,
+  "usable_segments": 210,
+  "history_len_frames": 30,
+  "prediction_len_frames": 20,
+  "stride_frames": 10,
+  "estimated_history_seconds": 1.5,
+  "estimated_prediction_seconds": 1.0,
+  "route_counts": {
+    "train": 15,
+    "validation": 3,
+    "test": 3
+  },
+  "sequence_counts": {
+    "train": 18981,
+    "validation": 2419,
+    "test": 2434
+  },
+  "sequence_samples": 23834,
+  "manifest_path": "/Users/weijingtao/Desktop/Honours project/comma2k19_data_preparation/chunk_9_results/comma2k19_chunk_9_manifest.csv",
+  "sequence_index_path": "/Users/weijingtao/Desktop/Honours project/comma2k19_data_preparation/chunk_9_results/comma2k19_chunk_9_sequence_index.csv",
+  "route_split_path": "/Users/weijingtao/Desktop/Honours project/comma2k19_data_preparation/chunk_9_results/comma2k19_chunk_9_route_splits.csv",
+  "normalisation_path": "/Users/weijingtao/Desktop/Honours project/comma2k19_data_preparation/chunk_9_results/comma2k19_chunk_9_normalisation.json"
+}

@@ -1,0 +1,60 @@
+{
+  "state_history": {
+    "feature_names": [
+      "longitudinal_position_m",
+      "lateral_position_m",
+      "longitudinal_velocity_mps",
+      "lateral_velocity_mps",
+      "speed_mps",
+      "acceleration_mps2",
+      "relative_heading_rad",
+      "yaw_rate_radps"
+    ],
+    "mean": [
+      -16.04478082978836,
+      -0.00394670916340342,
+      21.70983806362823,
+      0.008402568040752496,
+      21.725844532063782,
+      0.006276443037778354,
+      -0.010337484386674565,
+      -0.016357969473706168
+    ],
+    "std": [
+      13.783715356199844,
+      0.3034755316726413,
+      11.45204002005546,
+      0.512779823925537,
+      11.45240007121871,
+      0.516517279055731,
+      0.6176889861515206,
+      1.6527579421791412
+    ],
+    "sample_frames": 569430
+  },
+  "future_target": {
+    "feature_names": [
+      "longitudinal_position_m",
+      "lateral_position_m",
+      "speed_mps",
+      "acceleration_mps2",
+      "relative_heading_rad"
+    ],
+    "mean": [
+      11.623551951387485,
+      -0.0017051767844065103,
+      21.734657404411738,
+      0.007382529024781524,
+      -0.029966275869852232
+    ],
+    "std": [
+      9.501206218232422,
+      0.1484807820750811,
+      11.452356297113033,
+      0.5147522836821466,
+      0.865404212554856
+    ],
+    "sample_frames": 379620
+  },
+  "calculated_from_split": "train"
+}

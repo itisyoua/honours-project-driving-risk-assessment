@@ -1,0 +1,5 @@
+carla==0.9.16
+Flask==3.1.2
+numpy==2.2.6
+Pillow==11.3.0
+

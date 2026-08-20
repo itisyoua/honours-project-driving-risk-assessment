@@ -1,0 +1,46 @@
+{
+  "chunks": [
+    "Chunk_1",
+    "Chunk_2",
+    "Chunk_3",
+    "Chunk_4",
+    "Chunk_5",
+    "Chunk_6",
+    "Chunk_7",
+    "Chunk_8",
+    "Chunk_9",
+    "Chunk_10"
+  ],
+  "chunk_paths": [
+    "/Users/weijingtao/Desktop/Honours project/comma2k19/Chunk_1",
+    "/Users/weijingtao/Desktop/Honours project/comma2k19/Chunk_2",
+    "/Users/weijingtao/Desktop/Honours project/comma2k19/Chunk_3",
+    "/Users/weijingtao/Desktop/Honours project/comma2k19/Chunk_4",
+    "/Users/weijingtao/Desktop/Honours project/comma2k19/Chunk_5",
+    "/Users/weijingtao/Desktop/Honours project/comma2k19/Chunk_6",
+    "/Users/weijingtao/Desktop/Honours project/comma2k19/Chunk_7",
+    "/Users/weijingtao/Desktop/Honours project/comma2k19/Chunk_8",
+    "/Users/weijingtao/Desktop/Honours project/comma2k19/Chunk_9",
+    "/Users/weijingtao/Desktop/Honours project/comma2k19/Chunk_10"
+  ],
+  "routes": 178,
+  "segments": 2035,
+  "usable_segments": 2035,
+  "history_len_frames": 30,
+  "prediction_len_frames": 20,
+  "route_counts": {
+    "train": 124,
+    "validation": 27,
+    "test": 27
+  },
+  "sequence_counts": {
+    "train": 168972,
+    "validation": 30229,
+    "test": 35449
+  },
+  "sequence_samples": 234650,
+  "manifest_path": "/Users/weijingtao/Desktop/Honours project/comma2k19_data_preparation/combined_results/comma2k19_combined_manifest.csv",
+  "sequence_index_path": "/Users/weijingtao/Desktop/Honours project/comma2k19_data_preparation/combined_results/comma2k19_combined_sequence_index.csv",
+  "route_split_path": "/Users/weijingtao/Desktop/Honours project/comma2k19_data_preparation/combined_results/comma2k19_combined_route_splits.csv",
+  "normalisation_path": "/Users/weijingtao/Desktop/Honours project/comma2k19_data_preparation/combined_results/comma2k19_combined_normalisation.json"
+}

@@ -1,0 +1,36 @@
+{
+  "status": "passed",
+  "sequence_count": 23145,
+  "sequence_counts": {
+    "train": 15274,
+    "test": 4748,
+    "validation": 3123
+  },
+  "route_counts": {
+    "train": 13,
+    "test": 3,
+    "validation": 3
+  },
+  "route_leakage": false,
+  "tensor_shapes": {
+    "frames": [
+      30,
+      3,
+      224,
+      224
+    ],
+    "state_history": [
+      30,
+      8
+    ],
+    "future_target": [
+      20,
+      5
+    ]
+  },
+  "decoded_sample_per_split": {
+    "train": "Chunk_7__99c94dc769b5d96e|2018-07-19--15-34-31__segment_7__history_0_29__target_30_49",
+    "validation": "Chunk_7__99c94dc769b5d96e|2018-07-20--20-16-28__segment_0__history_0_29__target_30_49",
+    "test": "Chunk_7__99c94dc769b5d96e|2018-07-20--16-43-04__segment_0__history_0_29__target_30_49"
+  }
+}

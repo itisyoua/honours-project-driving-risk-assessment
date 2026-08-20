@@ -1,0 +1,19 @@
+services:
+  carla:
+    image: carlasim/carla:0.9.16
+    container_name: honours-carla-0916
+    network_mode: host
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+    command:
+      - bash
+      - CarlaUE4.sh
+      - -RenderOffScreen
+      - -nosound
+      - -quality-level=Low
+      - -world-port=2000
+    restart: unless-stopped
+    shm_size: 4gb
+

@@ -1,0 +1,3 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/comma2k19_data_preparation/.venv/bin/python"
+}

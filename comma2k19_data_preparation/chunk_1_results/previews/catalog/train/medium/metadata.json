@@ -1,0 +1,20 @@
+{
+  "sequence_id": "Chunk_1__b0c9d2329ad1606b|2018-08-15--09-01-03__segment_21__history_0_29__target_30_49",
+  "chunk": "Chunk_1",
+  "split": "train",
+  "route_id": "b0c9d2329ad1606b|2018-08-15--09-01-03",
+  "segment_id": "21",
+  "history_frames": [
+    0,
+    29
+  ],
+  "target_frames": [
+    30,
+    49
+  ],
+  "mean_history_speed_mps": 27.127804,
+  "target_end_longitudinal_m": 27.655227661132812,
+  "target_end_lateral_m": -1.4725173969054595e-05,
+  "preview_png": "/Users/weijingtao/Desktop/Honours project/comma2k19_data_preparation/chunk_1_results/previews/catalog/train/medium/sequence_preview.png",
+  "preview_gif": "/Users/weijingtao/Desktop/Honours project/comma2k19_data_preparation/chunk_1_results/previews/catalog/train/medium/sequence_preview.gif"
+}

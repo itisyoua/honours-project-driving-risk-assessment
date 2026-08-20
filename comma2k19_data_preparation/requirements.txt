@@ -1,0 +1,5 @@
+av==18.0.0
+numpy==2.5.2
+pillow==12.3.0
+torch==2.13.0
+torchvision==0.28.0
