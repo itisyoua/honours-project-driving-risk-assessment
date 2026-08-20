@@ -78,10 +78,9 @@ def main() -> int:
     elif server_ready and client_ready:
         print("Environment is ready.")
     else:
-        print("Environment is not ready yet. Follow README_zh.md.")
+        print("Environment is not ready yet. Follow README.md.")
     return 0 if (server_ready and client_ready) else 1
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -6,7 +6,7 @@ cd "$PROJECT_DIR"
 
 if [[ "$(uname -s)" != "Linux" || "$(uname -m)" != "x86_64" ]]; then
   echo "CARLA 0.9.16 server requires Linux x86_64 (or a separate Windows machine)."
-  echo "This computer is $(uname -s) $(uname -m). See README_zh.md for the Mac remote workflow."
+  echo "This computer is $(uname -s) $(uname -m). See README.md for the Mac remote workflow."
   exit 2
 fi
 
@@ -74,4 +74,3 @@ if [[ "${1:-}" != "--no-open" ]] && command -v xdg-open >/dev/null 2>&1; then
   xdg-open "$URL" >/dev/null 2>&1 || true
 fi
 wait "$WEB_PID"
-

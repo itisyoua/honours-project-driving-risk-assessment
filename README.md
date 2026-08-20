@@ -7,9 +7,9 @@ CARLA environment for later collision-risk and severity experiments.
 
 ## Team guides
 
-- [CARLA and dataset integration guide (Chinese)](CARLA_DATASET_GUIDE_zh.md)
+- [CARLA and dataset integration guide](CARLA_DATASET_GUIDE.md)
 - [comma2k19 data preparation](comma2k19_data_preparation/README.md)
-- [CARLA environment setup (Chinese)](carla_simulation/README_zh.md)
+- [CARLA environment setup](carla_simulation/README.md)
 - [Model handoff contract](comma2k19_data_preparation/ALGORITHM_HANDOFF.md)
 
 ## Repository contents
@@ -53,7 +53,7 @@ and integration details.
 
 The CARLA server requires an Ubuntu x86_64 host with an NVIDIA GPU. The current
 Apple Silicon development machine can be used as the browser client. See
-`carla_simulation/README_zh.md` for setup and operating instructions.
+`carla_simulation/README.md` for setup and operating instructions.
 
 ## Data policy
 
