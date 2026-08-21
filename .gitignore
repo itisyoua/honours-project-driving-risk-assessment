@@ -14,6 +14,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.worktrees/
 
 # Local secrets and runtime files
 .env
@@ -37,4 +38,3 @@ wandb/
 *.ckpt
 *.pt
 *.pth
-
