@@ -13,3 +13,6 @@
 - Inspection: 1,150 records, 425 route prefixes, zero malformed records, zero duplicate frame IDs
 - Compatibility: passed; all 1,150 records contain a current `FRONT` image, complete 16-step past ego state and complete 20-step future x/y target
 - Note: this E2E release stores one current camera image per native sample. Its 16 temporal inputs are the provided 4 Hz ego-state history, not a 16-image sequence.
+- Conversion: 1,150 model samples, zero rejected records, 425 route prefixes
+- Converted size: 373,234,894 bytes referenced by the validation manifest
+- Validation: passed with zero duplicate IDs, route leakage, missing files, decode errors, shape errors or non-finite values
