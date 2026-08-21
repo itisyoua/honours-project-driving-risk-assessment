@@ -6,7 +6,7 @@ from driving_algorithm.data.contracts import SequenceContract, make_sample_id
 
 def valid_sample():
     return {
-        "frames": np.zeros((16, 3, 224, 224), dtype=np.float32),
+        "image": np.zeros((3, 224, 224), dtype=np.float32),
         "state_history": np.zeros((16, 8), dtype=np.float32),
         "future_target": np.zeros((20, 5), dtype=np.float32),
         "history_mask": np.ones(16, dtype=np.bool_),
@@ -30,10 +30,10 @@ def test_contract_rejects_non_finite_motion():
         SequenceContract.validate(sample)
 
 
-def test_contract_rejects_wrong_frame_shape():
+def test_contract_rejects_wrong_image_shape():
     sample = valid_sample()
-    sample["frames"] = np.zeros((15, 3, 224, 224), dtype=np.float32)
-    with pytest.raises(ValueError, match="frames"):
+    sample["image"] = np.zeros((3, 224, 223), dtype=np.float32)
+    with pytest.raises(ValueError, match="image"):
         SequenceContract.validate(sample)
 
 

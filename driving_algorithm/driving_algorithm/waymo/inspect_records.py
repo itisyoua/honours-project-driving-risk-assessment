@@ -3,15 +3,14 @@ from __future__ import annotations
 import argparse
 import io
 import json
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
-import numpy as np
 from PIL import Image
 from waymo_open_dataset import dataset_pb2
 from waymo_open_dataset.protos import end_to_end_driving_data_pb2
 
-from .records import front_image_bytes, parse_e2e_record
+from .records import front_image_bytes, parse_e2e_record, split_frame_name
 from .tfrecord import iter_tfrecord
 
 
@@ -19,23 +18,13 @@ def _string_counts(counter: Counter) -> dict[str, int]:
     return {str(key): counter[key] for key in sorted(counter, key=str)}
 
 
-def _has_history_window(timestamps: list[int]) -> bool:
-    ordered = np.asarray(sorted(timestamps), dtype=np.int64)
-    if ordered.size < 16:
-        return False
-    for start in range(ordered.size - 15):
-        gaps = np.diff(ordered[start : start + 16])
-        if np.all(np.abs(gaps - 250_000) <= 25_000):
-            return True
-    return False
-
-
 def inspect_shards(paths, report_path: Path) -> dict:
     shard_paths = [Path(path) for path in paths]
     if not shard_paths:
         raise ValueError("at least one TFRecord shard is required")
 
-    run_timestamps: dict[str, list[int]] = defaultdict(list)
+    frame_ids: Counter = Counter()
+    route_ids: Counter = Counter()
     camera_names: Counter = Counter()
     image_dimensions: Counter = Counter()
     past_lengths: Counter = Counter()
@@ -44,20 +33,44 @@ def inspect_shards(paths, report_path: Path) -> dict:
     front_camera_records = 0
     records = 0
     malformed_records = 0
+    zero_timestamp_records = 0
+    complete_past_records = 0
+    complete_future_records = 0
 
     for shard_path in shard_paths:
         for payload in iter_tfrecord(shard_path):
             try:
                 record = parse_e2e_record(payload)
-                run_id = record.frame.context.name
+                frame_id = record.frame.context.name
                 timestamp = int(record.frame.timestamp_micros)
-                if not run_id or timestamp < 0:
-                    raise ValueError("record is missing run ID or timestamp")
+                if not frame_id or timestamp < 0:
+                    raise ValueError("record is missing frame ID or has a negative timestamp")
 
                 records += 1
-                run_timestamps[run_id].append(timestamp)
+                frame_ids[frame_id] += 1
+                route_id, _ = split_frame_name(frame_id)
+                route_ids[route_id] += 1
+                if timestamp == 0:
+                    zero_timestamp_records += 1
                 past_lengths[len(record.past_states.pos_x)] += 1
                 future_lengths[len(record.future_states.pos_x)] += 1
+                if all(
+                    len(getattr(record.past_states, field)) == 16
+                    for field in (
+                        "pos_x",
+                        "pos_y",
+                        "vel_x",
+                        "vel_y",
+                        "accel_x",
+                        "accel_y",
+                    )
+                ):
+                    complete_past_records += 1
+                if all(
+                    len(getattr(record.future_states, field)) == 20
+                    for field in ("pos_x", "pos_y")
+                ):
+                    complete_future_records += 1
                 intent_name = end_to_end_driving_data_pb2.EgoIntent.Intent.Name(
                     record.intent
                 )
@@ -73,30 +86,14 @@ def inspect_shards(paths, report_path: Path) -> dict:
             except Exception:
                 malformed_records += 1
 
-    all_gaps = []
-    for timestamps in run_timestamps.values():
-        if len(timestamps) > 1:
-            all_gaps.extend(np.diff(np.asarray(sorted(timestamps), dtype=np.int64)))
-    if all_gaps:
-        gap_array = np.asarray(all_gaps, dtype=np.int64)
-        gap_summary = {
-            "count": int(gap_array.size),
-            "min": int(gap_array.min()),
-            "median": int(np.median(gap_array)),
-            "max": int(gap_array.max()),
-        }
-    else:
-        gap_summary = {"count": 0, "min": None, "median": None, "max": None}
-
-    complete_motion = (
-        records > 0
-        and past_lengths == Counter({16: records})
-        and future_lengths == Counter({20: records})
-    )
+    duplicate_frame_ids = sum(count - 1 for count in frame_ids.values() if count > 1)
     compatible = (
-        malformed_records == 0
-        and complete_motion
-        and any(_has_history_window(values) for values in run_timestamps.values())
+        records > 0
+        and malformed_records == 0
+        and duplicate_frame_ids == 0
+        and front_camera_records == records
+        and complete_past_records == records
+        and complete_future_records == records
     )
 
     report = {
@@ -105,16 +102,20 @@ def inspect_shards(paths, report_path: Path) -> dict:
             for path in shard_paths
         ],
         "records": records,
-        "runs": len(run_timestamps),
+        "routes": len(route_ids),
+        "unique_frame_ids": len(frame_ids),
+        "duplicate_frame_ids": duplicate_frame_ids,
+        "zero_timestamp_records": zero_timestamp_records,
         "front_camera_records": front_camera_records,
         "camera_name_counts": _string_counts(camera_names),
         "image_dimensions": _string_counts(image_dimensions),
         "past_length_counts": _string_counts(past_lengths),
         "future_length_counts": _string_counts(future_lengths),
         "intent_counts": _string_counts(intent_counts),
-        "timestamp_gap_micros": gap_summary,
+        "complete_past_state_records": complete_past_records,
+        "complete_future_target_records": complete_future_records,
         "malformed_records": malformed_records,
-        "compatible_with_16_frame_history": compatible,
+        "compatible_with_cnn_lstm_sample": compatible,
     }
     report_path = Path(report_path)
     report_path.parent.mkdir(parents=True, exist_ok=True)

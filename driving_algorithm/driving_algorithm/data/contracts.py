@@ -12,7 +12,7 @@ TARGET_DIM = 5
 SAMPLE_HZ = 4.0
 
 _REQUIRED_KEYS = {
-    "frames",
+    "image",
     "state_history",
     "future_target",
     "history_mask",
@@ -45,14 +45,14 @@ class SequenceContract:
             raise ValueError(f"missing sample keys: {', '.join(missing)}")
 
         arrays = {
-            "frames": np.asarray(sample["frames"]),
+            "image": np.asarray(sample["image"]),
             "state_history": np.asarray(sample["state_history"]),
             "future_target": np.asarray(sample["future_target"]),
             "history_mask": np.asarray(sample["history_mask"]),
             "future_mask": np.asarray(sample["future_mask"]),
         }
         expected_shapes = {
-            "frames": (HISTORY_STEPS, 3, 224, 224),
+            "image": (3, 224, 224),
             "state_history": (HISTORY_STEPS, STATE_DIM),
             "future_target": (FUTURE_STEPS, TARGET_DIM),
             "history_mask": (HISTORY_STEPS,),
@@ -68,7 +68,7 @@ class SequenceContract:
             raise ValueError("history_mask must have boolean dtype")
         if arrays["future_mask"].dtype != np.bool_:
             raise ValueError("future_mask must have boolean dtype")
-        for name in ("frames", "state_history", "future_target"):
+        for name in ("image", "state_history", "future_target"):
             if not np.isfinite(arrays[name]).all():
                 raise ValueError(f"{name} must contain only finite values")
 

@@ -52,8 +52,8 @@ phase must work using existing local files only.
 
 ### Phase B: Waymo urban data
 
-Download one Waymo E2E shard first. Inspect record ordering, timestamps, camera
-availability and trajectory fields before expanding the selection. Add a
+Download one Waymo E2E shard first. Inspect sample IDs, camera availability and
+trajectory fields before expanding the selection. Add a
 one-time converter so the main PyTorch training environment does not depend on
 Waymo's TensorFlow package or CARLA. Expand only while the raw and converted
 data remain within the approved 20-40 GB budget.
@@ -111,7 +111,7 @@ Each model-ready item is a dictionary with the following values:
 
 | Key | Type and shape | Meaning |
 | --- | --- | --- |
-| `frames` | float32 `[T, 3, H, W]` | ImageNet-normalised front RGB history |
+| `image` | float32 `[3, H, W]` | ImageNet-normalised current front RGB image |
 | `state_history` | float32 `[T, 8]` | Normalised ego history |
 | `future_target` | float32 `[K, 5]` | Unnormalised future motion |
 | `history_mask` | bool `[T]` | Valid historical steps |
@@ -150,10 +150,12 @@ indexes are built; existing 30-history/20-future preparation outputs remain
 available and are not overwritten. CARLA may run at a higher tick rate, but its
 adapter supplies the predictor at 4 Hz.
 
-Before expanding the Waymo download, the first-shard inspection must prove that
-records can be grouped into ordered 16-frame front-camera histories. If this
-condition fails, Phase B stops with a written compatibility report rather than
-fabricating temporal images.
+The first real shard established the native Waymo E2E V1.0.0 sample semantics:
+each record contains one current camera frame, a 16-step ego-state history and a
+20-step future target. Its frame timestamp may be zero; `frame.context.name` is
+the stable sample identifier. Before expanding the download, inspection must
+prove that every selected record has these camera and motion fields. Missing
+temporal images are never fabricated or repeated.
 
 ## 7. Dataset Rules
 
@@ -173,10 +175,11 @@ fabricating temporal images.
 
 The baseline model has four parts:
 
-1. a pretrained ResNet-18 visual encoder applied independently to every frame;
-2. a small state encoder applied to the eight ego-state values;
-3. an LSTM over concatenated visual and state features;
-4. a trajectory head that maps the final recurrent state to `[20, 5]`.
+1. a pretrained ResNet-18 visual encoder applied to the current front image;
+2. a small state encoder applied to each of the 16 ego-state steps;
+3. an LSTM over the encoded state history;
+4. a fusion layer combining current visual context and the final recurrent state;
+5. a trajectory head that maps the fused representation to `[20, 5]`.
 
 The visual backbone can be frozen from configuration for low-memory training.
 The code selects Apple MPS when available and otherwise runs on CPU. It also
@@ -212,7 +215,7 @@ in the required form.
 
 The CARLA request contract contains:
 
-- ordered RGB frames and timestamps;
+- the latest RGB frame and its capture timestamp;
 - ordered ego states in SI units;
 - current actor ID, class, local x/y position, local x/y velocity and bounding
   box extent;
@@ -236,7 +239,7 @@ a deterministic integration baseline, not a learned collision probability.
 
 - Missing raw data produces an actionable path and download instruction.
 - Malformed rows report source file and record/sample ID.
-- Non-monotonic timestamps, insufficient history, non-finite motion values and
+- Duplicate sample IDs, insufficient history, non-finite motion values and
   inconsistent shapes are rejected during conversion.
 - Waymo inspection reports compatibility before bulk conversion.
 - Training refuses route leakage, mismatched normalisation dimensions and
@@ -249,11 +252,11 @@ a deterministic integration baseline, not a learned collision probability.
 The approved algorithm work is complete when:
 
 1. all unit and contract tests pass on the Mac without CARLA;
-2. a comma2k19 batch has shapes `[B, 16, 3, 224, 224]`, `[B, 16, 8]` and
+2. a comma2k19 batch has shapes `[B, 3, 224, 224]`, `[B, 16, 8]` and
    `[B, 20, 5]` under the unified configuration;
 3. a one-batch forward/backward smoke test completes with finite loss;
-4. at least one downloaded Waymo shard has a compatibility report and, when
-   temporally compatible, converted samples and previews;
+4. at least one downloaded Waymo shard has a compatibility report and converted
+   samples and previews;
 5. mixed-source loading preserves route/run split isolation;
 6. evaluation emits overall and source-stratified ADE/FDE reports;
 7. the CARLA contract fixture produces a valid future trajectory and

@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Download a storage-limited Waymo End-to-End Driving subset and convert temporally compatible front-camera records into validated 4 Hz CNN-LSTM sequence manifests matching the project's unified data contract.
+**Goal:** Download a storage-limited Waymo End-to-End Driving subset and convert current-front-camera records with native 4 Hz motion histories into validated CNN-LSTM manifests matching the project's unified data contract.
 
-**Architecture:** A Mac-compatible, TensorFlow-free converter reads TFRecord framing and Waymo protobuf messages, inspects one shard before bulk work, then stores each front JPEG once per run plus compressed motion arrays and CSV indexes. Existing comma2k19 files remain unchanged; shared motion utilities make both sources expose 16 history steps, 20 future steps, eight history features and five future features.
+**Architecture:** A Mac-compatible, TensorFlow-free converter reads TFRecord framing and Waymo protobuf messages, inspects one shard before bulk work, then stores one current front JPEG and compressed motion arrays per native E2E sample plus a CSV index. The CNN consumes the current image while the LSTM consumes the 16-step ego-state history. Existing comma2k19 files remain unchanged; shared motion utilities make both sources expose 16 history steps, 20 future steps, eight history features and five future features.
 
 **Tech Stack:** Python 3.9+, PyTorch 2.x, NumPy, Pillow, protobuf, grpcio-tools, google-crc32c, pytest, CSV/JSON/NPZ.
 
@@ -51,7 +51,7 @@ from driving_algorithm.data.contracts import SequenceContract, make_sample_id
 
 def valid_sample():
     return {
-        "frames": np.zeros((16, 3, 224, 224), dtype=np.float32),
+        "image": np.zeros((3, 224, 224), dtype=np.float32),
         "state_history": np.zeros((16, 8), dtype=np.float32),
         "future_target": np.zeros((20, 5), dtype=np.float32),
         "history_mask": np.ones(16, dtype=np.bool_),
@@ -326,7 +326,7 @@ Expected: FAIL because reader and inspector modules do not exist.
 
 - [ ] **Step 4: Implement framing, parsing and inspection**
 
-The report must include file sizes, record count, run IDs, timestamp range, timestamp gaps per run, camera-name counts, image dimensions, past/future field length distributions, driving-intent counts, malformed record count and a boolean `compatible_with_16_frame_history`. Compatibility is true only when at least one run has 16 monotonically ordered front frames at approximately 4 Hz and every selected target record has 16 past and 20 future positions.
+The report must include file sizes, record count, route-prefix count, unique and duplicate frame IDs, zero-timestamp count, camera-name counts, image dimensions, past/future field length distributions, driving-intent counts, malformed record count and a boolean `compatible_with_cnn_lstm_sample`. Compatibility is true only when every record has one current front image, all six 16-step past-state fields and both 20-step future-position fields.
 
 - [ ] **Step 5: Run TFRecord and inspector tests**
 
@@ -370,11 +370,11 @@ Download one validation shard when available because the official validation rel
 
 Run the inspector against the sole file in `data/raw/waymo_e2e/` and write `data/reports/waymo_first_shard.json`. The command discovers and prints the actual downloaded filename rather than relying on a guessed shard name.
 
-Expected: zero malformed records and `compatible_with_16_frame_history: true`.
+Expected: zero malformed records and `compatible_with_cnn_lstm_sample: true`.
 
 - [ ] **Step 5: Apply the compatibility gate**
 
-If compatibility is false, stop bulk download and write the concrete failed condition into `DOWNLOAD_LOG.md`. If true, proceed to Task 6. This gate cannot be bypassed by repeating frames or interpolating images.
+If compatibility is false, stop bulk download and write the concrete failed condition into `DOWNLOAD_LOG.md`. If true, proceed to Task 6. This gate cannot be bypassed by repeating or fabricating images or motion values.
 
 - [ ] **Step 6: Commit provenance only**
 
@@ -385,7 +385,7 @@ git commit -m "docs: record Waymo E2E source provenance"
 
 ---
 
-### Task 6: Convert Compatible Waymo Runs into Indexed Sequences
+### Task 6: Convert Compatible Waymo Records into Indexed Samples
 
 **Files:**
 - Create: `driving_algorithm/driving_algorithm/waymo/convert_records.py`
@@ -399,27 +399,26 @@ git commit -m "docs: record Waymo E2E source provenance"
 **Interfaces:**
 - Consumes: ordered E2ED records from Task 4
 - Consumes: motion derivation from Task 2
-- Produces: `convert_shards(paths, output_root, split, stride=4) -> ConversionSummary`
+- Produces: `convert_shards(paths, output_root, split) -> ConversionSummary`
 - Produces: `WaymoE2EDataset(index_csv, image_size=(224, 224), normalise_images=True)`
 - Produces each sample conforming to `SequenceContract`
 
 - [ ] **Step 1: Write a failing conversion test**
 
-Create 20 synthetic sequential E2ED records for one run. Convert with a four-record stride and assert:
+Create three synthetic native E2ED records. Convert them and assert:
 
 ```python
-assert summary.records == 20
-assert summary.runs == 1
-assert summary.sequences == 2
-assert len(list((output / "runs" / "run-1" / "front").glob("*.jpg"))) == 20
-assert (output / "runs" / "run-1" / "motion.npz").exists()
+assert summary.records == 3
+assert summary.samples == 3
+assert len(list((output / "images").glob("*.jpg"))) == 3
+assert len(list((output / "motion").glob("*.npz"))) == 3
 ```
 
-The expected two samples end at record indexes 15 and 19. JPEG count proves that overlapping windows do not duplicate image storage.
+The JPEG and NPZ counts prove that every independent native record maps to exactly one model-ready sample.
 
 - [ ] **Step 2: Write a failing dataset test**
 
-Load the generated CSV and assert one item has exact shapes `[16, 3, 224, 224]`, `[16, 8]` and `[20, 5]`, all finite values, `source == "waymo_e2e"`, and a route ID matching the synthetic run.
+Load the generated CSV and assert one item has exact shapes `[3, 224, 224]`, `[16, 8]` and `[20, 5]`, all finite values, `source == "waymo_e2e"`, and a route ID derived from the native frame name.
 
 - [ ] **Step 3: Run tests and verify failure**
 
@@ -429,7 +428,7 @@ Expected: FAIL because converter and dataset modules do not exist.
 
 - [ ] **Step 4: Implement storage-efficient conversion**
 
-For each run, write each front JPEG once using its timestamp as the filename. Write `frame_index.csv` with frame index, timestamp and relative JPEG path. Write one `motion.npz` containing record timestamps, state histories, future targets, masks and intent values. Write manifest rows referencing run directory, history start/end indexes and target record index. Use temporary files followed by atomic rename so interrupted conversion is restartable.
+For each record, write the current front JPEG once using a filesystem-safe native frame ID. Write one compressed motion NPZ containing state history, future target and masks. Write a manifest row referencing the image and motion paths, native frame ID, derived route prefix, source shard and intent. Use temporary files followed by atomic rename so interrupted conversion is restartable.
 
 - [ ] **Step 5: Preserve official splits and derive scene metadata**
 
@@ -437,7 +436,7 @@ Use the downloaded Waymo split as the manifest split. Map intent values to `unkn
 
 - [ ] **Step 6: Implement loading and ImageNet normalisation**
 
-The dataset resolves only paths under its configured data root, loads the 16 indexed JPEGs with Pillow, converts to RGB, resizes to 224x224, applies existing comma2k19 ImageNet mean/std values, loads the indexed motion arrays and invokes `SequenceContract.validate` before returning.
+The dataset resolves only paths under its configured data root, loads the current JPEG with Pillow, converts to RGB, resizes to 224x224, applies existing comma2k19 ImageNet mean/std values, loads the motion arrays and invokes `SequenceContract.validate` before returning.
 
 - [ ] **Step 7: Run conversion and dataset tests**
 
@@ -447,7 +446,7 @@ Expected: all tests PASS.
 
 - [ ] **Step 8: Convert the inspected real shard**
 
-Run the converter with the actual sole shard discovered in Task 5, its official split, output root `data/converted/waymo_e2e`, manifest directory `data/manifests`, and stride `4`. Validate that total raw plus converted disk usage remains below 40 GB before downloading another shard.
+Run the converter with the actual sole shard discovered in Task 5, its official split, output root `data/converted/waymo_e2e`, and manifest directory `data/manifests`. Validate that total raw plus converted disk usage remains below 40 GB before downloading another shard.
 
 - [ ] **Step 9: Commit conversion code and tests**
 
@@ -485,11 +484,11 @@ Expected: FAIL because validator does not exist.
 
 - [ ] **Step 3: Implement validation and summary output**
 
-Check manifest columns, unique sample IDs, split isolation, monotonic frame timestamps, exact temporal lengths, file existence, image decode, motion array shapes, finite values and data-contract validity. Report sequence/run counts, split counts, intent counts, speed distribution, total bytes, rejected samples and rejection reasons.
+Check manifest columns, unique sample IDs, route-level split isolation, exact temporal lengths, file existence, image decode, motion array shapes, finite values and data-contract validity. Report sample/route counts, split counts, intent counts, speed distribution, total bytes, rejected samples and rejection reasons.
 
 - [ ] **Step 4: Implement preview output**
 
-Create a PNG matching the established comma2k19 concept: six evenly selected history frames in a 2x3 grid, followed by an ego-local plot with blue history, red future target, origin marker, sample/run/split/source labels and final forward/lateral displacement.
+Create a PNG matching the established comma2k19 concept: the current front image followed by an ego-local plot with blue state history, red future target, origin marker, sample/run/split/source labels and final forward/lateral displacement.
 
 - [ ] **Step 5: Run validation tests and the full suite**
 
