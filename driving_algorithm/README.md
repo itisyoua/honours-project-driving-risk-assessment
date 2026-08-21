@@ -137,7 +137,8 @@ Run a one-batch connectivity test before long training:
   --manifest data/manifests/waymo_e2e_train.csv \
   --data-root data/converted/waymo_e2e \
   --checkpoint checkpoints/cnn_lstm_smoke.pt \
-  --epochs 1 --batch-size 2 --max-batches 1 --device auto
+  --epochs 1 --batch-size 2 --max-batches 1 --device auto \
+  --no-pretrained-backbone
 ```
 
 Start a baseline training run with pretrained ResNet-18 weights:
@@ -148,12 +149,13 @@ Start a baseline training run with pretrained ResNet-18 weights:
   --data-root data/converted/waymo_e2e \
   --checkpoint checkpoints/cnn_lstm_waymo.pt \
   --epochs 20 --batch-size 8 --learning-rate 0.001 \
-  --device auto --pretrained-backbone
+  --device auto
 ```
 
-The default freezes ResNet-18 for lower memory use. Add `--train-backbone` only
-when fine-tuning the visual encoder is intended. The first pretrained run may
-download the official torchvision weights.
+The default uses pretrained ResNet-18 weights and freezes the backbone for lower
+memory use. Add `--train-backbone` only when fine-tuning the visual encoder is
+intended. The first pretrained run may download the official torchvision
+weights; evaluation loads the saved checkpoint without downloading them again.
 
 Evaluate a checkpoint and emit overall plus source/scene metrics:
 

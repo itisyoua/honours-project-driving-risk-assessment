@@ -33,3 +33,31 @@ def test_metrics_ignore_masked_steps_and_wrap_heading():
     assert metrics["ade"] == 0.0
     assert metrics["fde"] == 0.0
     assert abs(metrics["heading_mae"] - 0.1) < 1e-5
+
+
+def test_metrics_count_fully_invalid_samples_without_aborting():
+    target = torch.zeros(2, 20, 5)
+    prediction = target.clone()
+    prediction[0, :, 0] = 2.0
+    mask = torch.ones(2, 20, dtype=torch.bool)
+    mask[1] = False
+
+    metrics = trajectory_metrics(prediction, target, mask)
+
+    assert metrics["ade"] == 2.0
+    assert metrics["fde"] == 2.0
+    assert metrics["samples"] == 2
+    assert metrics["invalid_samples"] == 1
+
+
+def test_metrics_report_empty_group_when_every_sample_is_invalid():
+    target = torch.zeros(1, 20, 5)
+    prediction = target.clone()
+    mask = torch.zeros(1, 20, dtype=torch.bool)
+
+    metrics = trajectory_metrics(prediction, target, mask)
+
+    assert metrics["ade"] is None
+    assert metrics["fde"] is None
+    assert metrics["samples"] == 1
+    assert metrics["invalid_samples"] == 1

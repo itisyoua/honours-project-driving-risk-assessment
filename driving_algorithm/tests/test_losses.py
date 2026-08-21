@@ -37,4 +37,3 @@ def test_heading_loss_wraps_across_pi_boundary():
     losses = trajectory_loss(prediction, target, mask, LossWeights())
 
     assert 0.0 < losses["heading"].item() < 0.01
-

@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 
 import torch
 from torch import nn
+from torch.nn.utils.rnn import pack_padded_sequence, pad_sequence
 from torchvision.models import ResNet18_Weights, resnet18
 
 from driving_algorithm.data.contracts import FUTURE_STEPS, STATE_DIM, TARGET_DIM
@@ -17,7 +18,7 @@ class CNNLSTMConfig:
     lstm_layers: int = 1
     fusion_hidden_dim: int = 256
     dropout: float = 0.1
-    pretrained_backbone: bool = False
+    pretrained_backbone: bool = True
     freeze_backbone: bool = True
 
     def as_dict(self) -> dict:
@@ -32,6 +33,7 @@ class CNNLSTMTrajectoryPredictor(nn.Module):
         config: CNNLSTMConfig | None = None,
         state_mean=None,
         state_std=None,
+        load_backbone_weights: bool = True,
     ) -> None:
         super().__init__()
         self.config = config or CNNLSTMConfig()
@@ -41,7 +43,9 @@ class CNNLSTMTrajectoryPredictor(nn.Module):
             raise ValueError("dropout must be in [0, 1)")
 
         weights = (
-            ResNet18_Weights.DEFAULT if self.config.pretrained_backbone else None
+            ResNet18_Weights.DEFAULT
+            if self.config.pretrained_backbone and load_backbone_weights
+            else None
         )
         backbone = resnet18(weights=weights)
         backbone_features = backbone.fc.in_features
@@ -132,15 +136,20 @@ class CNNLSTMTrajectoryPredictor(nn.Module):
         visual_features = self.visual_projection(visual_backbone_features)
 
         normalised_state = (state_history - self.state_mean) / self.state_std
-        normalised_state = normalised_state * history_mask.unsqueeze(-1)
         encoded_state = self.state_encoder(normalised_state)
-        recurrent_state, _ = self.state_lstm(encoded_state)
-        step_indexes = torch.arange(16, device=state_history.device).unsqueeze(0)
-        last_valid_indexes = torch.where(
-            history_mask, step_indexes, torch.full_like(step_indexes, -1)
-        ).max(dim=1).values
-        batch_indexes = torch.arange(state_history.shape[0], device=state_history.device)
-        history_features = recurrent_state[batch_indexes, last_valid_indexes]
+        valid_sequences = [
+            sequence[mask] for sequence, mask in zip(encoded_state, history_mask)
+        ]
+        sequence_lengths = history_mask.sum(dim=1).cpu()
+        padded_state = pad_sequence(valid_sequences, batch_first=True)
+        packed_state = pack_padded_sequence(
+            padded_state,
+            sequence_lengths,
+            batch_first=True,
+            enforce_sorted=False,
+        )
+        _, (hidden_state, _) = self.state_lstm(packed_state)
+        history_features = hidden_state[-1]
 
         fused = torch.cat((visual_features, history_features), dim=-1)
         prediction = self.trajectory_head(fused)

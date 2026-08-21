@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 
 from driving_algorithm.data.statistics import compute_state_statistics
 from driving_algorithm.data.waymo_dataset import WaymoE2EDataset
@@ -15,6 +15,10 @@ from driving_algorithm.training.engine import (
     manifest_fingerprint,
     save_checkpoint,
     train_one_epoch,
+)
+from driving_algorithm.training.sampling import (
+    source_balanced_sample_weights,
+    validate_training_rows,
 )
 
 
@@ -28,16 +32,27 @@ def main() -> None:
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--device", default="auto", choices=("auto", "cpu", "mps", "cuda"))
     parser.add_argument("--max-batches", type=int)
-    parser.add_argument("--pretrained-backbone", action="store_true")
+    parser.add_argument(
+        "--pretrained-backbone",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     parser.add_argument("--train-backbone", action="store_true")
     args = parser.parse_args()
     if args.epochs < 1 or args.batch_size < 1:
         parser.error("epochs and batch size must be positive")
 
     device = select_device(args.device)
-    statistics = compute_state_statistics(args.manifest, args.data_root)
     dataset = WaymoE2EDataset(args.manifest, args.data_root)
-    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+    validate_training_rows(dataset.rows)
+    statistics = compute_state_statistics(args.manifest, args.data_root)
+    sample_weights = source_balanced_sample_weights(
+        dataset.rows, default_source="waymo_e2e"
+    )
+    sampler = WeightedRandomSampler(
+        sample_weights, num_samples=len(dataset), replacement=True
+    )
+    loader = DataLoader(dataset, batch_size=args.batch_size, sampler=sampler)
     config = CNNLSTMConfig(
         pretrained_backbone=args.pretrained_backbone,
         freeze_backbone=not args.train_backbone,

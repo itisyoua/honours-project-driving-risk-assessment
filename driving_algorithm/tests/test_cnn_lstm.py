@@ -1,4 +1,5 @@
 import torch
+from torchvision.models import resnet18 as torchvision_resnet18
 
 from driving_algorithm.models.cnn_lstm import (
     CNNLSTMConfig,
@@ -51,3 +52,42 @@ def test_model_rejects_sample_with_no_valid_history():
         assert "history" in str(error)
     else:
         raise AssertionError("expected empty history to be rejected")
+
+
+def test_masked_history_positions_do_not_change_prediction():
+    model = make_model().eval()
+    image = torch.zeros(1, 3, 64, 64)
+    valid_steps = torch.randn(3, 8)
+    left_padded = torch.randn(1, 16, 8)
+    right_padded = torch.randn(1, 16, 8)
+    left_mask = torch.zeros(1, 16, dtype=torch.bool)
+    right_mask = torch.zeros(1, 16, dtype=torch.bool)
+    left_padded[0, -3:] = valid_steps
+    right_padded[0, :3] = valid_steps
+    left_mask[0, -3:] = True
+    right_mask[0, :3] = True
+
+    with torch.no_grad():
+        left_prediction = model(image, left_padded, left_mask)
+        right_prediction = model(image, right_padded, right_mask)
+
+    torch.testing.assert_close(left_prediction, right_prediction)
+
+
+def test_checkpoint_construction_can_skip_pretrained_download(monkeypatch):
+    observed_weights = []
+
+    def recording_resnet18(*, weights):
+        observed_weights.append(weights)
+        return torchvision_resnet18(weights=None)
+
+    monkeypatch.setattr(
+        "driving_algorithm.models.cnn_lstm.resnet18", recording_resnet18
+    )
+
+    model = CNNLSTMTrajectoryPredictor(
+        CNNLSTMConfig(pretrained_backbone=True), load_backbone_weights=False
+    )
+
+    assert model.config.pretrained_backbone is True
+    assert observed_weights == [None]

@@ -31,7 +31,8 @@ def main() -> None:
     device = select_device(args.device)
     metadata = checkpoint_metadata(args.checkpoint)
     model = CNNLSTMTrajectoryPredictor(
-        CNNLSTMConfig(**metadata["model_config"])
+        CNNLSTMConfig(**metadata["model_config"]),
+        load_backbone_weights=False,
     ).to(device)
     load_checkpoint(args.checkpoint, model, map_location=device)
     dataset = WaymoE2EDataset(args.manifest, args.data_root)
@@ -39,8 +40,11 @@ def main() -> None:
     report = evaluate_model(model, loader, device, max_batches=args.max_batches)
     report["checkpoint_epoch"] = metadata["epoch"]
     report["device"] = str(device)
-    report["manifest_matches_checkpoint"] = (
-        manifest_fingerprint(args.manifest) == metadata["manifest_fingerprint"]
+    evaluation_fingerprint = manifest_fingerprint(args.manifest)
+    report["training_manifest_fingerprint"] = metadata["manifest_fingerprint"]
+    report["evaluation_manifest_fingerprint"] = evaluation_fingerprint
+    report["evaluation_manifest_is_training_manifest"] = (
+        evaluation_fingerprint == metadata["manifest_fingerprint"]
     )
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

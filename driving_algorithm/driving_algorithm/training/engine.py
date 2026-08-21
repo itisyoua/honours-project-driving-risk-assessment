@@ -155,8 +155,17 @@ def load_checkpoint(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer | None = None,
     map_location="cpu",
+    expected_manifest_fingerprint: str | None = None,
 ) -> dict:
     payload = _read_checkpoint(Path(path), map_location=map_location)
+    current_config = model.config.as_dict()
+    if payload["model_config"] != current_config:
+        raise ValueError("checkpoint configuration does not match the model")
+    if (
+        expected_manifest_fingerprint is not None
+        and payload["manifest_fingerprint"] != expected_manifest_fingerprint
+    ):
+        raise ValueError("checkpoint manifest fingerprint does not match")
     model.load_state_dict(payload["model_state"])
     if optimizer is not None:
         optimizer.load_state_dict(payload["optimizer_state"])

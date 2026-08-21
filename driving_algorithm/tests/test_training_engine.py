@@ -1,5 +1,6 @@
 import math
 
+import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
 
@@ -80,3 +81,38 @@ def test_training_step_evaluation_and_checkpoint_round_trip(tmp_path):
     torch.testing.assert_close(model.trajectory_head[-1].weight, saved)
     assert payload["epoch"] == 1
     assert payload["manifest_fingerprint"] == "abc123"
+
+
+def test_checkpoint_rejects_incompatible_model_configuration(tmp_path):
+    model = make_model()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    checkpoint = tmp_path / "baseline.pt"
+    save_checkpoint(checkpoint, model, optimizer, 1, "abc123")
+    incompatible = CNNLSTMTrajectoryPredictor(
+        CNNLSTMConfig(
+            image_feature_dim=16,
+            state_feature_dim=8,
+            lstm_hidden_dim=12,
+            fusion_hidden_dim=16,
+            dropout=0.2,
+            pretrained_backbone=False,
+            freeze_backbone=True,
+        )
+    )
+
+    with pytest.raises(ValueError, match="configuration"):
+        load_checkpoint(checkpoint, incompatible)
+
+
+def test_checkpoint_can_validate_expected_manifest_fingerprint(tmp_path):
+    model = make_model()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    checkpoint = tmp_path / "baseline.pt"
+    save_checkpoint(checkpoint, model, optimizer, 1, "abc123")
+
+    with pytest.raises(ValueError, match="manifest fingerprint"):
+        load_checkpoint(
+            checkpoint,
+            model,
+            expected_manifest_fingerprint="different",
+        )
