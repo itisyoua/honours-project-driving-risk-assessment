@@ -53,6 +53,11 @@ Raw downloads require signing in at <https://waymo.com/open/download/> and
 accepting the Waymo dataset terms. Credentials, cookies and signed URLs are
 never stored in this project.
 
+The prepared subset contains 7 training shards and 1 validation shard: 12,129
+samples from 2,447 route prefixes. Raw plus converted data is about 29.2 GiB,
+with no route or sample overlap between train and validation. Exact file sizes
+and SHA-256 values are recorded in `data/DOWNLOAD_LOG.md`.
+
 ## Inspect and Convert
 
 Inspect official TFRecord framing, camera fields and motion lengths:
