@@ -123,3 +123,50 @@ print(batch["future_target"].shape)  # [8, 20, 5] -> training target
 The later CARLA adapter must provide the same current image and 16-step ego
 history. CARLA remains on the group's Ubuntu/NVIDIA machine; no CARLA server is
 needed to prepare or train this dataset on the Mac.
+
+## CNN-LSTM Baseline
+
+The baseline model applies ResNet-18 to `image`, an MLP and LSTM to
+`state_history`, then fuses both representations to predict `[B,20,5]`.
+Training state mean and standard deviation are stored inside every checkpoint.
+
+Run a one-batch connectivity test before long training:
+
+```bash
+.venv/bin/python -m driving_algorithm.train \
+  --manifest data/manifests/waymo_e2e_train.csv \
+  --data-root data/converted/waymo_e2e \
+  --checkpoint checkpoints/cnn_lstm_smoke.pt \
+  --epochs 1 --batch-size 2 --max-batches 1 --device auto
+```
+
+Start a baseline training run with pretrained ResNet-18 weights:
+
+```bash
+.venv/bin/python -m driving_algorithm.train \
+  --manifest data/manifests/waymo_e2e_train.csv \
+  --data-root data/converted/waymo_e2e \
+  --checkpoint checkpoints/cnn_lstm_waymo.pt \
+  --epochs 20 --batch-size 8 --learning-rate 0.001 \
+  --device auto --pretrained-backbone
+```
+
+The default freezes ResNet-18 for lower memory use. Add `--train-backbone` only
+when fine-tuning the visual encoder is intended. The first pretrained run may
+download the official torchvision weights.
+
+Evaluate a checkpoint and emit overall plus source/scene metrics:
+
+```bash
+.venv/bin/python -m driving_algorithm.evaluate \
+  --checkpoint checkpoints/cnn_lstm_waymo.pt \
+  --manifest data/manifests/waymo_e2e_validation.csv \
+  --data-root data/converted/waymo_e2e \
+  --report data/reports/cnn_lstm_validation.json \
+  --batch-size 8 --device auto
+```
+
+`--device auto` selects MPS, then CUDA, then CPU according to availability.
+Smoke-test metrics from one randomly initialized training batch only prove that
+the data/model/loss/checkpoint path works; they are not reportable performance
+results.
